@@ -14,12 +14,17 @@
 
 #define BUFFER_SIZE 4096
 #define PORT 5000
+#define MAXSZ 100
 
 int main(int argc, char *argv[]) {
     int sockfd = 0;
     int n = 0;
     char recvBuff[BUFFER_SIZE];
     struct sockaddr_in serv_addr;
+
+    char msg1[MAXSZ];
+    char msg2[MAXSZ];
+
 
     memset(recvBuff, '0', sizeof(recvBuff));
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -42,13 +47,19 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    while (1) {
-        if ((n = read(sockfd, recvBuff, sizeof(recvBuff) - 1)) > 0) {
-            recvBuff[n] = '\0';
-            printf("%s\n", recvBuff);
-        }
-        sleep(1000);
-    }
+    //send to sever and receive from server
+     while(1){
+        printf("\nEnter message to send to server:\n");
+        fgets(msg1,MAXSZ,stdin);
+        if(msg1[0]=='#')
+            break;
+
+        n=strlen(msg1)+1;
+        send(sockfd,msg1,n,0);
+
+        n=recv(sockfd,msg2,MAXSZ,0);
+        printf("Receive message from  server::%s\n",msg2);
+     }
 
     return 0;
 }

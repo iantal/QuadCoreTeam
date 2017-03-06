@@ -17,7 +17,8 @@ typedef enum {
     DISCONNECT_REQ,
     USERNAME,
     SUCCESS,
-    ERROR
+    ERROR,
+    MESSAGE
 
 } message_type;
 
