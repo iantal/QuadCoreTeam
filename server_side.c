@@ -18,10 +18,7 @@ int listenfd = 0;
 
 
 void initialize_server();
-
-void send_message(){
-
-}
+void send_message();
 
 int main(int argc, char *argv[]){
 
@@ -32,16 +29,17 @@ int main(int argc, char *argv[]){
     int index = 0;
     while(1){
         connections[index] = accept(listenfd, (struct sockaddr*)NULL, NULL);
-	printf("%d\n",connections[index]);
+	    printf("%d\n",connections[index]);
 
-	strcpy(sendBuff,"Ana are mere!");
-	strcat(sendBuff,"\0");
-	printf("%s\n",sendBuff);
-	snprintf(sendBuff, sizeof(sendBuff),"Ana are mere!");
+	    strcpy(sendBuff,"Ana are mere!");
+    	strcat(sendBuff,"\0");
+	    // printf("%s\n",sendBuff);
+	    // snprintf(sendBuff, sizeof(sendBuff),"Ana are mere!");
 
         write(connections[index], sendBuff, strlen(sendBuff));
-	
-	close(connections[index]);
+        strcat(sendBuff,"conn");
+	    send_message(sendBuff);
+	// close(connections[index]);
         sleep(1);
         index++;
      }
@@ -64,4 +62,14 @@ void initialize_server() {
     bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
 
     listen(listenfd, NUMBER_OF_USERS);
+}
+
+void send_message(char* sendBuff){
+    int i;
+    for(i = 0; i < 100; i++){
+        if(connections[i] > 0){
+            printf("client id: %d\n",connections[i]);
+            write(connections[i], sendBuff, strlen(sendBuff));
+        }
+    }
 }
