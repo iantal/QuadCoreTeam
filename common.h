@@ -9,7 +9,9 @@
 
 
 #define BUFFER_SIZE 4096
+#define IP_ADDRESS "79.113.95.211"
 #define PORT 5000
+
 
 
 typedef enum {
@@ -17,7 +19,8 @@ typedef enum {
     DISCONNECT_REQ,
     USERNAME,
     SUCCESS,
-    ERROR
+    ERROR,
+    MESSAGE
 
 } message_type;
 
