@@ -7,9 +7,9 @@
 
 #endif //QUADCORETEAM_COMMON_H
 
-
-#define BUFFER_SIZE 4096
-#define IP_ADDRESS "79.113.95.211"
+#define PACK_SIZE sizeof(message)
+#define BUFFER_SIZE 4000
+#define IP_ADDRESS "127.0.0.1"
 #define PORT 5000
 
 
@@ -17,7 +17,6 @@
 typedef enum {
     AUTH_REQ,
     DISCONNECT_REQ,
-    USERNAME,
     SUCCESS,
     ERROR,
     MESSAGE

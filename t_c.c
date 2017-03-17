@@ -18,8 +18,8 @@
 #define max(a, b)    ((a) > (b) ? (a) : (b))
 
 int sock;
-
-void initialize_client();
+message *client_auth;
+char data[PACK_SIZE];
 
 void client_rec_send(FILE *fp, int sockfd) {
     int maxfdp1;
@@ -74,16 +74,6 @@ void client_rec_send(FILE *fp, int sockfd) {
     }
 }
 
-
-int main(int argc, char *argv[]) {
-    initialize_client();
-
-    client_rec_send(stdin, sock);
-
-    close(sock);
-    return 0;
-}
-
 void initialize_client() {
     struct sockaddr_in server;
 
@@ -103,4 +93,77 @@ void initialize_client() {
         perror("connect failed. Error");
     }
     puts("Connected\n");
+}
+
+char * serialize(message* msgPacket, int sock_fd)
+{
+
+//int i;
+//    char *t = (char *) data;
+//    i=0;
+//    while(i<20){
+//
+//        *t = msgPacket->type[i];
+//        t++;
+//        i++;
+//    }
+//    char *uname = (char *)data;
+//    i=0;
+//    while(i<21){
+//        *uname = msgPacket->username[i];
+//        uname++;
+//        i++;
+//    }
+//
+//    int *len = (int *) uname;
+//    *len = msgPacket->length;
+//    len++;
+//
+//    char *p = (char*) len;
+//    i = 0;
+//    while (i < BUFFER_SIZE)
+//    {
+//        *p = msgPacket->body[i];
+//        p++;
+//        i++;
+//    }
+
+    message test;
+    test.type = AUTH_REQ;
+    strcpy(test.username, "gigi\0");
+    test.length = 21;
+    test.body = calloc(21,sizeof(char));
+    strcpy(test.body, "10\0");
+
+    char* buff = calloc(sizeof(test), sizeof(char));
+    memcpy(buff, &test, sizeof(test));
+    write(sock_fd, buff, sizeof(buff));
+}
+
+void auth_req(int sockfd){
+    client_auth = malloc(1*sizeof(message));
+//    puts("Username:");
+//    char name[20];
+//    fgets(name, 20, stdin);
+//    strcpy(client_auth->username,name);
+//    printf("User[ %s ]",name);
+//    printf("\n");
+//    puts("Pass:");
+//    char pass[100];
+//    fgets(pass, 100, stdin);
+//    strcpy(client_auth->body,pass);
+//    printf("%s\n",pass);
+//    client_auth->length = 100;
+
+    serialize(client_auth, sockfd);
+    printf("[DEBUG] Serialized data: %s\n",data);
+}
+
+int main(int argc, char *argv[]) {
+    initialize_client();
+    auth_req(sock);
+    client_rec_send(stdin, sock);
+
+    close(sock);
+    return 0;
 }
