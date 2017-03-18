@@ -8,22 +8,21 @@
 #endif //QUADCORETEAM_COMMON_H
 
 #define PACK_SIZE sizeof(message)
-#define BUFFER_SIZE 4000
 #define IP_ADDRESS "127.0.0.1"
 #define PORT 5000
 
-//typedef enum {
-//    AUTH_REQ,
-//    DISCONNECT_REQ,
-//    SUCCESS,
-//    ERROR,
-//    MESSAGE
-//
-//} message_type;
+#define TYPE_LEN 3
+#define USER_LEN 4
+#define LENGTH_LEN 3
+#define TOTAL_HEADER_LEN 10
 
 typedef struct {
     char type[4];
-    char username[21];
-    unsigned int length;
+    char username[5];
+    unsigned char length;
     char *body;
 } message;
+
+char *serialize(message msg);
+
+message deserialize(char *buff);

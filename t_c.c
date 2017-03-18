@@ -16,6 +16,7 @@
 #define KWHT  "\x1B[37m"
 
 #define max(a, b)    ((a) > (b) ? (a) : (b))
+#define BUFFER_SIZE 4000
 
 int sock;
 message msg_auth;
@@ -23,7 +24,7 @@ char data[PACK_SIZE];
 
 char *serialize(message msg) {
     char *buff = calloc(sizeof(message) + msg.length, sizeof(char));
-    sprintf(buff, "%s%s%d%s", msg.type, msg.username, msg.length, msg.body);
+    sprintf(buff, "%s%s%03d%s", msg.type, msg.username, msg.length, msg.body);
     return buff;
 }
 
@@ -76,13 +77,12 @@ void client_rec_send(FILE *fp, int sockfd) {
 
             // buf contine mesajul
             message msg;
-            msg.body = malloc(n*sizeof(char));
+            msg.body = malloc(n * sizeof(char));
             strcpy(msg.type, "MSG");
             strcpy(msg.username, msg_auth.username);
             msg.length = (unsigned int) n;
             strcpy(msg.body, buf);
             char *m = serialize(msg);
-
             //write(sockfd, buf, n);
             write(sockfd, m, strlen(m));
             memset(buf, '\0', BUFFER_SIZE);
@@ -99,6 +99,7 @@ void initialize_client() {
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == -1) {
         printf("Could not create socket");
+        exit(1);
     }
     puts("Socket created");
 
@@ -109,6 +110,7 @@ void initialize_client() {
     //Connect to remote server
     if (connect(sock, (struct sockaddr *) &server, sizeof(server)) < 0) {
         perror("connect failed. Error");
+        exit(2);
     }
     puts("Connected\n");
 }
@@ -119,24 +121,25 @@ void auth_req(int sockfd) {
     strcpy(msg_auth.type, "AUT");
 
     puts("Username:");
-    char name[20];
-    scanf("%s",msg_auth.username);
+    scanf("%4s", msg_auth.username);
+
 
     puts("Pass:");
     msg_auth.body = calloc(21, sizeof(char));
-    scanf("%s",msg_auth.body);
+    scanf("%s", msg_auth.body);
 
     msg_auth.length = (unsigned int) strlen(msg_auth.body);
+
 
     char *b = serialize(msg_auth);
     printf("[DEBUG] Serialized data: %s\n", b);
 
-    write(sockfd,b,strlen(b));
+    write(sockfd, b, strlen(b));
 
 
 }
 
-void logout(int sockfd){
+void logout(int sockfd) {
 
 }
 
@@ -144,14 +147,7 @@ int main(int argc, char *argv[]) {
     initialize_client();
     int auth_success = 0;
     int n;
-    //do{
     auth_req(sock);
-//        if ((n = (int) read(sock, buf, BUFFER_SIZE)) != 0) {
-//
-//            if(strcmp(buf,"SUC") == 0)
-//                auth_success = 1;
-//        }
-       // auth_success = 1;
 
     //}while(auth_success ==0);
     client_rec_send(stdin, sock);

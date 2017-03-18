@@ -11,8 +11,9 @@
 #include <pthread.h>
 #include "common.h"
 
-
+#define MAX_BUFFER_SIZE 500
 #define NUMBER_OF_USERS 1000
+int current_number_of_users = 0;
 
 int *connections;
 struct sockaddr_in server_addr, client_addr;
@@ -21,43 +22,6 @@ message *client_auth;
 char data[PACK_SIZE];
 
 
-void deserialize(char *buff) {
-//    int i = 0;
-
-//    char *t = (char *) data;
-//    i=0;
-//    while(i<20){
-//        msgPacket->type[i] = *t;
-//        t++;
-//        i++;
-//    }
-//
-//    char *uname = (char *) data;
-//    i=0;
-//    while(i<21){
-//        msgPacket->username[i] = *uname;
-//        uname++;
-//        i++;
-//    }
-//
-//    int *len = (int *) uname;
-//    *len = msgPacket->length;
-//    len++;
-//
-//
-//    char *p = (char*)len;
-//    while (i < BUFFER_SIZE)
-//    {
-//        msgPacket->body[i] = *p;
-//        p++;
-//        i++;
-//    }
-
-    message test;
-    memcpy(&test, buff, sizeof(buff));
-    printf("Username: %s\nPassword: %s", test.username, test.body);
-
-}
 
 void auth_hadler(int socket) {
     int rec;
@@ -68,12 +32,14 @@ void auth_hadler(int socket) {
     }
 }
 
+
 void initialize_server() {
     connections = calloc(NUMBER_OF_USERS, sizeof(int));
     //Create socket
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_desc == -1) {
         printf("Could not create socket");
+        exit(1);
     }
     puts("Socket created");
 
@@ -86,6 +52,7 @@ void initialize_server() {
     if (bind(socket_desc, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
         //print the error message
         perror("bind failed. Error");
+        exit(2);
     }
     puts("bind done");
     //Listen
@@ -94,47 +61,60 @@ void initialize_server() {
 
 void *connection_handler(void *socket_desc) {
 
-
     //Get the socket descriptor
     int sock = *(int *) socket_desc;
     int read_size;
-    char *message, client_message[BUFFER_SIZE];
-
+    char buffer_from_clients[MAX_BUFFER_SIZE];
 
     //Receive a message from client
     while (1) {
-        memset(client_message, 0, BUFFER_SIZE);
-        if ((read_size = (int) recv(sock, client_message, BUFFER_SIZE, 0)) > 0) {
+        memset(buffer_from_clients, 0, MAX_BUFFER_SIZE);
+        message message_received;
+        if ((read_size = (int) recv(sock, buffer_from_clients, TOTAL_HEADER_LEN, 0)) > 0) {
             //Send the message back to
-            printf("Message received from cliend id: %d, %s\n", sock, client_message);
-            int index;
-            for (index = 0; index < 1000; index++) {
+            printf("Message received from cliend id: %d, %s\n", sock, buffer_from_clients);
+            message_received = deserialize(buffer_from_clients);
+        }
+        memset(buffer_from_clients, 0, MAX_BUFFER_SIZE);
+        if ((read_size = (int) recv(sock, buffer_from_clients, message_received.length, 0)) > 0) {
+            strcpy(message_received.body, buffer_from_clients);
+        }
+
+        if (strcmp(message_received.type, "AUT") == 0) {
+            printf("Authenticated\n");
+        } else if (strcmp(message_received.type, "MSG") == 0) {
+            for (int index = 0; index < current_number_of_users; index++) {
                 if (connections[index] > 0) {
                     printf("Client: %d\n", connections[index]);
-                    write(connections[index], client_message, strlen(client_message));
+                    char *message_to_send;
+                    message_to_send = serialize(message_received);
+                    write(connections[index], message_to_send, strlen(message_to_send));
                 }
             }
-        }
-    }
+        } else if (strcmp(message_received.type, "DIS") == 0) {
+            printf("Log out\n");
 
+        }
+
+    }
 }
 
 
 int main(int argc, char *argv[]) {
 
-    char sendBuff[4096];
     initialize_server();
 
     //Accept and incoming connection
     puts("Waiting for incoming connections...");
     socket_length = sizeof(struct sockaddr_in);
-    int index = 0;
-    while ((connections[index] = accept(socket_desc, (struct sockaddr *) &client_addr, (socklen_t *) &socket_length))) {
+
+    while ((connections[current_number_of_users] = accept(socket_desc, (struct sockaddr *) &client_addr,
+                                                          (socklen_t *) &socket_length))) {
         puts("Connection accepted");
 
         pthread_t sniffer_thread;
         new_sock = malloc(1);
-        *new_sock = connections[index];
+        *new_sock = connections[current_number_of_users];
 
         auth_hadler(socket_desc);
 
@@ -144,10 +124,8 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        //Now join the thread , so that we dont terminate before the thread
-        //pthread_join( sniffer_thread , NULL);
         puts("Handler assigned");
-        index++;
+        current_number_of_users++;
     }
 
     if (client_sock < 0) {

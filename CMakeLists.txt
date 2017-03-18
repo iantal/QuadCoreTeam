@@ -3,8 +3,8 @@ project(Chat)
 
 set(CMAKE_CXX_COMPILER 11)
 find_package (Threads)
-set(SERVER server_side.c)
-set(CLIENT t_c.c)
+set(SERVER server_side.c common.c)
+set(CLIENT t_c.c common.c)
 
 add_executable(server ${SERVER})
 add_executable(client ${CLIENT})
