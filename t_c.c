@@ -81,16 +81,16 @@ void client_rec_send(FILE *fp, int sockfd) {
             strcpy(msg.username, msg_auth.username);
             msg.length = (unsigned int) n;
             strcpy(msg.body, buf);
-            printf("$$$$$$$$$$$$%s\n",buf);
             char *m = serialize(msg);
 
-            write(sockfd, buf, n);
-            //write(sockfd, m, n);
+            //write(sockfd, buf, n);
+            write(sockfd, m, strlen(m));
             memset(buf, '\0', BUFFER_SIZE);
-            //memset(m, '\0', strlen(m));
+            memset(m, '\0', strlen(m));
         }
     }
 }
+
 
 void initialize_client() {
     struct sockaddr_in server;
