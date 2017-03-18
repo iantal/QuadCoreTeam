@@ -54,7 +54,7 @@ void client_rec_send(FILE *fp, int sockfd) {
             }
 
             write(fileno(stdout), buf, n);
-            memset(buf, '\0',BUFFER_SIZE);
+            memset(buf, '\0', BUFFER_SIZE);
 
         }
 
@@ -69,7 +69,7 @@ void client_rec_send(FILE *fp, int sockfd) {
             }
 
             write(sockfd, buf, n);
-            memset(buf, '\0',BUFFER_SIZE);
+            memset(buf, '\0', BUFFER_SIZE);
         }
     }
 }
@@ -95,68 +95,55 @@ void initialize_client() {
     puts("Connected\n");
 }
 
-char * serialize(message* msgPacket, int sock_fd)
-{
+char *serialize(message msg) {
 
-//int i;
-//    char *t = (char *) data;
-//    i=0;
-//    while(i<20){
-//
-//        *t = msgPacket->type[i];
-//        t++;
-//        i++;
-//    }
-//    char *uname = (char *)data;
-//    i=0;
-//    while(i<21){
-//        *uname = msgPacket->username[i];
-//        uname++;
-//        i++;
-//    }
-//
-//    int *len = (int *) uname;
-//    *len = msgPacket->length;
-//    len++;
-//
-//    char *p = (char*) len;
-//    i = 0;
-//    while (i < BUFFER_SIZE)
-//    {
-//        *p = msgPacket->body[i];
-//        p++;
-//        i++;
-//    }
+    char *buff = calloc(sizeof(message) + msg.length, sizeof(char));
 
-    message test;
-    test.type = AUTH_REQ;
-    strcpy(test.username, "gigi\0");
-    test.length = 21;
-    test.body = calloc(21,sizeof(char));
-    strcpy(test.body, "10\0");
+    sprintf(buff, "%s%s%d%s", msg.type, msg.username, msg.length, msg.body);
 
-    char* buff = calloc(sizeof(test), sizeof(char));
-    memcpy(buff, &test, sizeof(test));
-    write(sock_fd, buff, sizeof(buff));
+//    memcpy(buff[i], msg.type, sizeof(msg.type));
+//    i += sizeof(msg.type);
+//
+//    memcpy(buff[i], msg.username, sizeof(msg.username));
+//    i += strlen(msg.username);
+//
+//    memcpy(buff[i], msg.length, sizeof(msg.length));
+//    i += sizeof(msg.length);
+//
+//    memcpy(buff[i], msg.body, sizeof(msg.body));
+//    i += sizeof(msg.body);
+
+    return buff;
+    //write(sock_fd, buff, sizeof(buff));
 }
 
-void auth_req(int sockfd){
-    client_auth = malloc(1*sizeof(message));
-//    puts("Username:");
-//    char name[20];
-//    fgets(name, 20, stdin);
-//    strcpy(client_auth->username,name);
-//    printf("User[ %s ]",name);
-//    printf("\n");
-//    puts("Pass:");
-//    char pass[100];
-//    fgets(pass, 100, stdin);
-//    strcpy(client_auth->body,pass);
-//    printf("%s\n",pass);
-//    client_auth->length = 100;
 
-    serialize(client_auth, sockfd);
-    printf("[DEBUG] Serialized data: %s\n",data);
+void auth_req(int sockfd) {
+    client_auth = malloc(sizeof(message));
+    puts("Username:");
+    char name[20];
+    fgets(name, 20, stdin);
+    strcpy(client_auth->username,name);
+    printf("User[ %s ]",name);
+    printf("\n");
+    puts("Pass:");
+    char pass[100];
+    fgets(pass, 100, stdin);
+    strcpy(client_auth->body,pass);
+    printf("%s\n",pass);
+    client_auth->length = 100;
+
+    message msg;
+    
+
+//    strcpy(msg.type, "AUT");
+//    strcpy(msg.username, "gigi");
+//    msg.body = calloc(21, sizeof(char));
+//    strcpy(msg.body, "passs");
+//    msg.length = strlen(msg.body);
+
+    char *b = serialize(msg);
+    printf("[DEBUG] Serialized data: %s\n", b);
 }
 
 int main(int argc, char *argv[]) {

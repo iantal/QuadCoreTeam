@@ -24,7 +24,7 @@ typedef enum {
 } message_type;
 
 typedef struct {
-    message_type type;
+    char type[4];
     char username[21];
     unsigned int length;
     char *body;
