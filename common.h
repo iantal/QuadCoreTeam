@@ -9,8 +9,7 @@
 
 #define PACK_SIZE sizeof(message)
 #define IP_ADDRESS "127.0.0.1"
-#define PORT 5001
-
+#define PORT 5000
 
 #define TYPE_LEN 3
 #define USER_LEN 4
