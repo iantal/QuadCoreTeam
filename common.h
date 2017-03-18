@@ -12,16 +12,14 @@
 #define IP_ADDRESS "127.0.0.1"
 #define PORT 5000
 
-
-
-typedef enum {
-    AUTH_REQ,
-    DISCONNECT_REQ,
-    SUCCESS,
-    ERROR,
-    MESSAGE
-
-} message_type;
+//typedef enum {
+//    AUTH_REQ,
+//    DISCONNECT_REQ,
+//    SUCCESS,
+//    ERROR,
+//    MESSAGE
+//
+//} message_type;
 
 typedef struct {
     char type[4];

@@ -18,8 +18,14 @@
 #define max(a, b)    ((a) > (b) ? (a) : (b))
 
 int sock;
-message *client_auth;
+message msg_auth;
 char data[PACK_SIZE];
+
+char *serialize(message msg) {
+    char *buff = calloc(sizeof(message) + msg.length, sizeof(char));
+    sprintf(buff, "%s%s%d%s", msg.type, msg.username, msg.length, msg.body);
+    return buff;
+}
 
 void client_rec_send(FILE *fp, int sockfd) {
     int maxfdp1;
@@ -68,8 +74,20 @@ void client_rec_send(FILE *fp, int sockfd) {
                 continue;
             }
 
+            // buf contine mesajul
+            message msg;
+            msg.body = malloc(n*sizeof(char));
+            strcpy(msg.type, "MSG");
+            strcpy(msg.username, msg_auth.username);
+            msg.length = (unsigned int) n;
+            strcpy(msg.body, buf);
+            printf("$$$$$$$$$$$$%s\n",buf);
+            char *m = serialize(msg);
+
             write(sockfd, buf, n);
+            //write(sockfd, m, n);
             memset(buf, '\0', BUFFER_SIZE);
+            //memset(m, '\0', strlen(m));
         }
     }
 }
@@ -95,60 +113,47 @@ void initialize_client() {
     puts("Connected\n");
 }
 
-char *serialize(message msg) {
-
-    char *buff = calloc(sizeof(message) + msg.length, sizeof(char));
-
-    sprintf(buff, "%s%s%d%s", msg.type, msg.username, msg.length, msg.body);
-
-//    memcpy(buff[i], msg.type, sizeof(msg.type));
-//    i += sizeof(msg.type);
-//
-//    memcpy(buff[i], msg.username, sizeof(msg.username));
-//    i += strlen(msg.username);
-//
-//    memcpy(buff[i], msg.length, sizeof(msg.length));
-//    i += sizeof(msg.length);
-//
-//    memcpy(buff[i], msg.body, sizeof(msg.body));
-//    i += sizeof(msg.body);
-
-    return buff;
-    //write(sock_fd, buff, sizeof(buff));
-}
-
 
 void auth_req(int sockfd) {
-    client_auth = malloc(sizeof(message));
+
+    strcpy(msg_auth.type, "AUT");
+
     puts("Username:");
     char name[20];
-    fgets(name, 20, stdin);
-    strcpy(client_auth->username,name);
-    printf("User[ %s ]",name);
-    printf("\n");
+    scanf("%s",msg_auth.username);
+
     puts("Pass:");
-    char pass[100];
-    fgets(pass, 100, stdin);
-    strcpy(client_auth->body,pass);
-    printf("%s\n",pass);
-    client_auth->length = 100;
+    msg_auth.body = calloc(21, sizeof(char));
+    scanf("%s",msg_auth.body);
 
-    message msg;
-    
+    msg_auth.length = (unsigned int) strlen(msg_auth.body);
 
-//    strcpy(msg.type, "AUT");
-//    strcpy(msg.username, "gigi");
-//    msg.body = calloc(21, sizeof(char));
-//    strcpy(msg.body, "passs");
-//    msg.length = strlen(msg.body);
-
-    char *b = serialize(msg);
+    char *b = serialize(msg_auth);
     printf("[DEBUG] Serialized data: %s\n", b);
+
+    write(sockfd,b,strlen(b));
+
+
+}
+
+void logout(int sockfd){
+
 }
 
 int main(int argc, char *argv[]) {
     initialize_client();
+    int auth_success = 0;
+    int n;
+    //do{
     auth_req(sock);
+//        if ((n = (int) read(sock, buf, BUFFER_SIZE)) != 0) {
+//
+//            if(strcmp(buf,"SUC") == 0)
+//                auth_success = 1;
+//        }
+       // auth_success = 1;
+
+    //}while(auth_success ==0);
     client_rec_send(stdin, sock);
 
     close(sock);
