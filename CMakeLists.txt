@@ -2,11 +2,14 @@ cmake_minimum_required(VERSION 3.6)
 project(Chat)
 
 set(CMAKE_CXX_COMPILER 11)
-find_package (Threads)
-set(SERVER server_side.c common.c)
-set(CLIENT t_c.c common.c)
+find_package(Threads)
+set(SERVER server_side.c)
+set(CLIENT client_side.c)
+#set(HEADER_FILES common.h)
+
+add_library(HEADER_FILES common.c common.h)
 
 add_executable(server ${SERVER})
 add_executable(client ${CLIENT})
 
-target_link_libraries (server ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(server ${CMAKE_THREAD_LIBS_INIT} HEADER_FILES)

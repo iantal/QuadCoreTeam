@@ -21,6 +21,12 @@ int socket_desc, client_sock, socket_length, *new_sock;
 message *client_auth;
 char data[PACK_SIZE];
 
+typedef struct userList{
+    char username[4];
+    char password[100];
+} userList;
+
+userList connected_users[NUMBER_OF_USERS];
 
 
 void auth_hadler(int socket) {
@@ -81,13 +87,22 @@ void *connection_handler(void *socket_desc) {
         }
 
         if (strcmp(message_received.type, "AUT") == 0) {
-            printf("Authenticated\n");
+            printf("Authenticated userId: %s\n", message_received.username);
+            for(int i = 0; i < current_number_of_users; i++){
+                if(strcmp(connected_users[i].username, message_received.username) != 0) {
+                    strcpy(connected_users[current_number_of_users].username, message_received.username);
+                    strcpy(connected_users[current_number_of_users].password, message_received.body);
+                    current_number_of_users++;
+                }
+            }
+            //TODO check user in list and send back a ACK/ERR message
         } else if (strcmp(message_received.type, "MSG") == 0) {
             for (int index = 0; index < current_number_of_users; index++) {
                 if (connections[index] > 0) {
                     printf("Client: %d\n", connections[index]);
                     char *message_to_send;
                     message_to_send = serialize(message_received);
+                    //TODO format string to a desired structure
                     write(connections[index], message_to_send, strlen(message_to_send));
                 }
             }
@@ -103,7 +118,7 @@ void *connection_handler(void *socket_desc) {
 int main(int argc, char *argv[]) {
 
     initialize_server();
-
+    userList connected_users[NUMBER_OF_USERS];
     //Accept and incoming connection
     puts("Waiting for incoming connections...");
     socket_length = sizeof(struct sockaddr_in);
