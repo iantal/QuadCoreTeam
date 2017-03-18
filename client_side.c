@@ -17,6 +17,7 @@
 
 #define max(a, b)    ((a) > (b) ? (a) : (b))
 #define BUFFER_SIZE 4000
+#define MAX_BUFFER_SIZE 500
 
 int sock;
 message msg_auth;
@@ -115,6 +116,21 @@ void initialize_client() {
     puts("Connected\n");
 }
 
+message deserialize(char *buff) {
+    char *p = buff;
+    message msg;
+    memcpy(msg.type, buff, TYPE_LEN);
+    msg.type[TYPE_LEN] = '\0';
+    p = p + TYPE_LEN;
+    memcpy(msg.username, p, USER_LEN);
+    msg.username[USER_LEN] = '\0';
+    p = p + USER_LEN;
+    msg.length = (unsigned int) atoi(p);
+    msg.body = calloc(msg.length, sizeof(char));
+    return msg;
+    // strncpy(message_received.type, read_size, sizeof(message));
+}
+
 
 void auth_req(int sockfd) {
 
@@ -135,6 +151,21 @@ void auth_req(int sockfd) {
     printf("[DEBUG] Serialized data: %s\n", b);
 
     write(sockfd, b, strlen(b));
+
+    int read_size;
+    char buffer_from_server[MAX_BUFFER_SIZE];
+    message auth_response;
+    if ((read_size = (int) recv(sock, buffer_from_server, TOTAL_HEADER_LEN, 0)) > 0) {
+        auth_response = deserialize(buffer_from_server);
+    }
+    
+    memset(buffer_from_server, 0, MAX_BUFFER_SIZE);
+    if ((read_size = (int) recv(sock, buffer_from_server, 3, 0)) > 0) {
+        strcpy(auth_response.body, buffer_from_server);
+    }
+
+    printf("[TEST] %s\n",auth_response.type);
+
 
 
 }
