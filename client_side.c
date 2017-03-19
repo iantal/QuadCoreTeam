@@ -32,17 +32,14 @@ char *format_for_display(message msg) {
 void client_rec_send(FILE *fp, int sockfd) {
     int maxfdp1;
     int stdineof;
-    int i;
     fd_set rset;
-    char buf[BUFFER_SIZE];
-    char message_to_print[BUFFER_SIZE];
-    int n;
-    char lines[1024];
+    char buffer[BUFFER_SIZE];
+    int read_size;
     stdineof = 0;
 
     FD_ZERO(&rset);
     while (1) {
-        strcpy(buf, "");
+        strcpy(buffer, "");
         if (stdineof == 0)
             FD_SET(fileno(fp), &rset); //adds fp to set <<rset>>
         FD_SET(sockfd, &rset); //adds sockfd to rset
@@ -51,7 +48,11 @@ void client_rec_send(FILE *fp, int sockfd) {
 
         //reading from socket - writing to stdout
         if (FD_ISSET(sockfd, &rset)) {
-            if ((n = (int) read(sockfd, buf, BUFFER_SIZE)) == 0) {
+
+            memset(buffer, 0, MAX_BUFFER_SIZE);
+
+
+            if ((read_size = (int) read(sockfd, buffer, TOTAL_HEADER_LEN)) == 0) {
 
                 if (stdineof == 1)
                     return;
@@ -60,27 +61,54 @@ void client_rec_send(FILE *fp, int sockfd) {
                     exit(1);
                 }
             }
+//            printf("Message received from cliend id: %d, %s\n", sock, buffer);
+            message message_received = deserialize(buffer);
 
-            write(fileno(stdout), buf, n);
-            memset(buf, '\0', BUFFER_SIZE);
+            memset(buffer, 0, MAX_BUFFER_SIZE);
+            if (read_size > 0 && (read_size = (int) read(sockfd, buffer, message_received.length)) == 0) {
+                if (stdineof == 1)
+                    return;
+                else {
+                    printf("server terminated...\n");
+                    exit(1);
+                }
+            }
+            strcpy(message_received.body, buffer);
 
+            if (read_size > 0) {
+                if (strcmp(message_received.type, "MSG") == 0 &&
+                    strcmp(message_received.username, msg_auth.username) != 0) {
+                    char *m = format_for_display(message_received);
+                    write(fileno(stdout), m, strlen(m));
+                } else if (strcmp(message_received.type, "DIS") == 0) {
+                    exit(0);
+                }
+                memset(buffer, '\0', BUFFER_SIZE);
+            }
         }
 
         //reading from stdin - writing to socket
         if (FD_ISSET(fileno(fp), &rset)) {
-            if ((n = read(fileno(fp), buf, BUFFER_SIZE)) == 0) {
+            if ((read_size = read(fileno(fp), buffer, BUFFER_SIZE)) == 0) {
 
                 stdineof = 1;
                 shutdown(sockfd, SHUT_WR);
                 FD_CLR(fileno(fp), &rset);
                 continue;
             }
-            // buf contine mesajul
-            message msg = create_message("MSG", msg_auth.username, buf);
-            char *m = serialize(msg);
-            write(sockfd, m, strlen(m));
-            memset(buf, '\0', BUFFER_SIZE);
-            memset(m, '\0', strlen(m));
+            // buffer_from_server contine mesajul
+
+            if (strcmp(buffer, "\n") != 0) {
+                message msg;
+                if (strcmp(buffer, "-logout\n") == 0) {
+                    msg = create_message("DIS", msg_auth.username, "");
+                } else {
+                    msg = create_message("MSG", msg_auth.username, buffer);
+                }
+                char *m = serialize(msg);
+                write(sockfd, m, strlen(m));
+                memset(buffer, '\0', BUFFER_SIZE);
+            }
         }
     }
 }

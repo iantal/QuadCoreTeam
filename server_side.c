@@ -19,8 +19,6 @@ int *connections;
 struct sockaddr_in server_addr, client_addr;
 
 int socket_desc, client_sock, socket_length, *new_sock;
-message *client_auth;
-char data[PACK_SIZE];
 
 typedef struct userList {
     char username[5];
@@ -115,7 +113,10 @@ void *connection_handler(void *socket_desc) {
             message_received = deserialize(buffer_from_clients);
         }
         memset(buffer_from_clients, 0, MAX_BUFFER_SIZE);
-        if (read_size > 0 && (read_size = (int) recv(sock, buffer_from_clients, message_received.length, 0)) > 0) {
+        if (read_size > 0 &&
+            message_received.length > 0 &&
+            (read_size = (int) recv(sock, buffer_from_clients, message_received.length, 0)) > 0) {
+
             strcpy(message_received.body, buffer_from_clients);
         }
 
@@ -128,7 +129,7 @@ void *connection_handler(void *socket_desc) {
                 broadcast_message(message_received);
 
             } else if (strcmp(message_received.type, "DIS") == 0) {
-                message ack_disconnect = create_message("DIS", message_received.username, " ");
+                message ack_disconnect = create_message("DIS", message_received.username, "");
 
                 char *message_to_send = serialize(ack_disconnect);
                 write(sock, message_to_send, strlen(message_to_send));
@@ -148,8 +149,6 @@ void broadcast_message(message message_received) {
         }
     }
 }
-
-
 
 
 int main(int argc, char *argv[]) {
