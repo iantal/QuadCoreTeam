@@ -42,15 +42,6 @@ userList existing_users[] = {
 userList connected_users[NUMBER_OF_USERS];
 
 
-void auth_hadler(int socket) {
-    int rec;
-
-    if ((rec = (int) recv(socket, data, PACK_SIZE, 0)) > 0) {
-        deserialize(data);
-        printf("User %s\n", client_auth->username);
-    }
-}
-
 
 void initialize_server() {
     connections = calloc(NUMBER_OF_USERS, sizeof(int));
@@ -183,9 +174,6 @@ int main(int argc, char *argv[]) {
         pthread_t sniffer_thread;
         new_sock = malloc(1);
         *new_sock = connections[current_number_of_users];
-
-        auth_hadler(socket_desc);
-
 
         if (pthread_create(&sniffer_thread, NULL, connection_handler, (void *) new_sock) < 0) {
             perror("could not create thread");
