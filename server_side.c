@@ -97,7 +97,7 @@ void authentication(int sock, message *message_received) {
     write(sock, message_to_send, strlen(message_to_send));
 }
 
-void *connection_handler(void *socket_desc) {
+void connection_handler(void *socket_desc) {
 
     //Get the socket descriptor
     int sock = *(int *) socket_desc;
@@ -130,10 +130,22 @@ void *connection_handler(void *socket_desc) {
 
             } else if (strcmp(message_received.type, "DIS") == 0) {
                 message ack_disconnect = create_message("DIS", message_received.username, "");
-
                 char *message_to_send = serialize(ack_disconnect);
                 write(sock, message_to_send, strlen(message_to_send));
+
                 printf("Log out\n");
+
+                //remove user from connected users
+                for(int i=0;i<current_number_of_users;i++){
+                    if(strcmp(connected_users[i].username,message_received.username) == 0){
+                        for(int j=i+1; j<current_number_of_users;j++){
+                            connected_users[j-1] = connected_users[j];
+                        }
+                        current_number_of_users--;
+                        break;
+                    }
+                }
+
             }
         }
     }

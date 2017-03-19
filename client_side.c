@@ -25,7 +25,7 @@ message msg_auth;
 
 char *format_for_display(message msg) {
     char *buff = calloc(sizeof(message) + msg.length, sizeof(char));
-    sprintf(buff, "[%s] : %s", msg.username, msg.body);
+    sprintf(buff, "%s[%s]%s : %s",KYEL, msg.username,KWHT, msg.body);
     return buff;
 }
 
@@ -138,7 +138,7 @@ void initialize_client() {
 }
 
 
-void auth_req(int sockfd) {
+int auth_req(int sockfd) {
 
     char username[5], password[21];
     puts("Username:");
@@ -149,7 +149,7 @@ void auth_req(int sockfd) {
     msg_auth = create_message("AUT", username, password);
     char *b = serialize(msg_auth);
 
-    printf("[DEBUG] Serialized data: %s\n", b);
+    //printf("[DEBUG] Serialized data: %s\n", b);
     write(sockfd, b, strlen(b));
 
     int read_size;
@@ -158,8 +158,13 @@ void auth_req(int sockfd) {
     if ((read_size = (int) recv(sock, buffer_from_server, TOTAL_HEADER_LEN, 0)) > 0) {
         auth_response = deserialize(buffer_from_server);
     }
-    printf("[TEST] %s\n", auth_response.type);
+    printf("[SERVER_RESPONSE] %s\n", auth_response.type);
+    
+    if(strncmp(auth_response.type, "ERR", 3) == 0){
+        return 0;    
+    }
 
+    return 1;
 
 }
 
@@ -171,9 +176,10 @@ int main(int argc, char *argv[]) {
     initialize_client();
     int auth_success = 0;
     int n;
-    auth_req(sock);
-
-    //}while(auth_success ==0);
+    do {
+        auth_success = auth_req(sock);
+    } while(!auth_success);
+    
     client_rec_send(stdin, sock);
 
     close(sock);
