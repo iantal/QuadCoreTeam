@@ -18,17 +18,12 @@ int current_number_of_users = 0;
 int *connections;
 struct sockaddr_in server_addr, client_addr;
 
-message create_message(char *type, char *username, unsigned char length, char *body);
-
-void authentication(int sock, char *message_to_send, message *message_received);
-
 int socket_desc, client_sock, socket_length, *new_sock;
 message *client_auth;
 char data[PACK_SIZE];
 
-
 typedef struct userList {
-    char username[4];
+    char username[5];
     char password[100];
 } userList;
 
@@ -41,7 +36,7 @@ userList existing_users[] = {
 
 userList connected_users[NUMBER_OF_USERS];
 
-
+void broadcast_message(message message_received);
 
 void initialize_server() {
     connections = calloc(NUMBER_OF_USERS, sizeof(int));
@@ -69,53 +64,10 @@ void initialize_server() {
     listen(socket_desc, 10);// NUMBER_OF_USERS);
 }
 
-void *connection_handler(void *socket_desc) {
 
-    //Get the socket descriptor
-    int sock = *(int *) socket_desc;
-    int read_size;
-    char buffer_from_clients[MAX_BUFFER_SIZE];
-    char *message_to_send;
-
-    //Receive a message from client
-    while (1) {
-        memset(buffer_from_clients, 0, MAX_BUFFER_SIZE);
-        message message_received;
-        if ((read_size = (int) recv(sock, buffer_from_clients, TOTAL_HEADER_LEN, 0)) > 0) {
-            printf("Message received from cliend id: %d, %s\n", sock, buffer_from_clients);
-            message_received = deserialize(buffer_from_clients);
-        }
-        memset(buffer_from_clients, 0, MAX_BUFFER_SIZE);
-        if ((read_size = (int) recv(sock, buffer_from_clients, message_received.length, 0)) > 0) {
-            strcpy(message_received.body, buffer_from_clients);
-        }
-
-        if (strcmp(message_received.type, "AUT") == 0) {
-            //printf("Authenticated userId: %s\n", message_received.username);
-            authentication(sock, message_to_send, &message_received);
-        } else if (strcmp(message_received.type, "MSG") == 0) {
-            for (int index = 0; index < current_number_of_users; index++) {
-                if (connections[index] > 0) {
-                    printf("Client: %d\n", connections[index]);
-
-                    message_to_send = serialize(message_received);
-                    //TODO format string to a desired structure
-                    write(connections[index], message_to_send, strlen(message_to_send));
-                }
-            }
-        } else if (strcmp(message_received.type, "DIS") == 0) {
-            message ack_disconnect = create_message("DIS", message_received.username, '1', " ");
-            message_to_send = serialize(ack_disconnect);
-            write(sock, message_to_send, strlen(message_to_send));
-            printf("Log out\n");
-
-        }
-
-    }
-}
-
-void authentication(int sock, char *message_to_send, message *message_received) {
+void authentication(int sock, message *message_received) {
     int flag = 0; //error
+    char *message_to_send;
     //checks if user is in the existing list of users
     for (int i = 0; i < 3; i++) {
         if ((strncmp(existing_users[i].username, (*message_received).username, 4) == 0)
@@ -137,26 +89,67 @@ void authentication(int sock, char *message_to_send, message *message_received) 
         strcpy(connected_users[current_number_of_users].username, (*message_received).username);
         strcpy(connected_users[current_number_of_users].password, (*message_received).body);
         current_number_of_users++;
-        //TODO send ack
-        message ack_success_msg = create_message("ACK", (*message_received).username, 0, "");
+
+        message ack_success_msg = create_message("ACK", (*message_received).username, "");
         message_to_send = serialize(ack_success_msg);
     } else {
-        //TODO send error msg to the client
-        message ack_error_msg = create_message("ERR", (*message_received).username, 0, "");
+        message ack_error_msg = create_message("ERR", (*message_received).username, "");
         message_to_send = serialize(ack_error_msg);
     }
     write(sock, message_to_send, strlen(message_to_send));
 }
 
-message create_message(char *type, char *username, unsigned char length, char *body) {
-    message msg;
-    strcpy(msg.type, type);
-    strcpy(msg.username, username);
-    msg.length = length;
-    msg.body = calloc(length, sizeof(char));
-    strcpy(msg.body, body);
-    return msg;
+void *connection_handler(void *socket_desc) {
+
+    //Get the socket descriptor
+    int sock = *(int *) socket_desc;
+    int read_size;
+    char buffer_from_clients[MAX_BUFFER_SIZE];
+
+    //Receive a message from client
+    while (1) {
+        memset(buffer_from_clients, 0, MAX_BUFFER_SIZE);
+        message message_received;
+        if ((read_size = (int) recv(sock, buffer_from_clients, TOTAL_HEADER_LEN, 0)) > 0) {
+            printf("Message received from cliend id: %d, %s\n", sock, buffer_from_clients);
+            message_received = deserialize(buffer_from_clients);
+        }
+        memset(buffer_from_clients, 0, MAX_BUFFER_SIZE);
+        if (read_size > 0 && (read_size = (int) recv(sock, buffer_from_clients, message_received.length, 0)) > 0) {
+            strcpy(message_received.body, buffer_from_clients);
+        }
+
+        if (read_size > 0) {
+
+            if (strcmp(message_received.type, "AUT") == 0) {
+                authentication(sock, &message_received);
+
+            } else if (strcmp(message_received.type, "MSG") == 0) {
+                broadcast_message(message_received);
+
+            } else if (strcmp(message_received.type, "DIS") == 0) {
+                message ack_disconnect = create_message("DIS", message_received.username, " ");
+
+                char *message_to_send = serialize(ack_disconnect);
+                write(sock, message_to_send, strlen(message_to_send));
+                printf("Log out\n");
+            }
+        }
+    }
 }
+
+void broadcast_message(message message_received) {
+    for (int index = 0; index < current_number_of_users; index++) {
+        if (connections[index] > 0) {
+            printf("Client: %d\n", connections[index]);
+
+            char *message_to_send = serialize(message_received);
+            write(connections[index], message_to_send, strlen(message_to_send));
+        }
+    }
+}
+
+
 
 
 int main(int argc, char *argv[]) {

@@ -25,5 +25,14 @@ message deserialize(char *buff) {
     msg.length = (unsigned int) atoi(p);
     msg.body = calloc(msg.length, sizeof(char));
     return msg;
-    // strncpy(message_received.type, read_size, sizeof(message));
+}
+
+message create_message(char *type, char *username, char *body) {
+    message msg;
+    strcpy(msg.type, type);
+    strcpy(msg.username, username);
+    msg.length = (unsigned char) strlen(body);
+    msg.body = calloc(strlen(body), sizeof(char));
+    strcpy(msg.body, body);
+    return msg;
 }
